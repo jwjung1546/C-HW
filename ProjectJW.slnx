@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="ProjectJW/ProjectJW.vcxproj" Id="576969aa-f974-4178-8b43-a7f0b6782f18" />
+</Solution>
