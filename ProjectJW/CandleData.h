@@ -72,8 +72,8 @@ public:
         double changePercent = ((ma5 - ma10) / ma10) * 100.0;
 
         cout << fixed << setprecision(2);
-        cout << "   - 5시간 이동평균선  : " << ma5 << " 원" << endl;
-        cout << "   - 10시간 이동평균선 : " << ma10 << " 원" << endl;
+        cout << "   - 5일 이동평균선  : " << ma5 << " 원" << endl;
+        cout << "   - 10일 이동평균선 : " << ma10 << " 원" << endl;
 
         if (changePercent > 0) {
             cout << "   - 두 평균선 변화량  : +" << changePercent << " % (5일선이 위로 이격)" << endl;
