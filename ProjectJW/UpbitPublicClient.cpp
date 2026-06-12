@@ -1,5 +1,3 @@
-#define _HAS_STD_BYTE 0
-
 #include "UpbitPublicClient.h"
 #include <iostream>
 #include <windows.h>
@@ -10,18 +8,22 @@
 using namespace std;
 
 UpbitPublicClient::UpbitPublicClient() {
-    tickerList = {
-        "KRW-BTC", "KRW-USDT", "KRW-ETH", "KRW-DOGE",
-        "KRW-XRP", "KRW-SOL", "KRW-TRX", "KRW-BRETT"
-    };
+    CoinList[0] = "KRW-BTC";  CoinList[1] = "KRW-USDT";
+    CoinList[2] = "KRW-ETH";  CoinList[3] = "KRW-DOGE";
+    CoinList[4] = "KRW-XRP";  CoinList[5] = "KRW-SOL";
+    CoinList[6] = "KRW-TRX";  CoinList[7] = "KRW-ATOM"; 
 }
 
-const vector<string>& UpbitPublicClient::getTickerList() const {
-    return tickerList;
+string* UpbitPublicClient::getCoinList() {
+    return CoinList;
 }
 
-vector<CandleData> UpbitPublicClient::fetchDayCandles(string marketCode, int count) {
-    vector<CandleData> candleHistory;
+void UpbitPublicClient::fetchDayCandles(string marketCode, int count, CandleData* outHistory) {
+
+    for (int i = 0; i < count; ++i) {
+        outHistory[i] = CandleData(marketCode, 0.0, 0.0, 0.0, 0.0);
+    }
+
     string readBuffer = "";
 
     string targetUrl = "https://api.upbit.com/v1/candles/days?market=" + marketCode + "&count=" + to_string(count);
@@ -41,32 +43,38 @@ vector<CandleData> UpbitPublicClient::fetchDayCandles(string marketCode, int cou
         InternetCloseHandle(hInternet);
     }
 
-    if (readBuffer.empty()) {
-        return candleHistory;
-    }
+    if (readBuffer.empty()) return;
 
     size_t offset = 0;
-    while (true) {
-        size_t openIdx = readBuffer.find("\"opening_price\":", offset);
+    int index = 0;
+    
+    while (index < count) {
+        size_t openIdx  = readBuffer.find("\"opening_price\":", offset);
         size_t tradeIdx = readBuffer.find("\"trade_price\":", offset);
-        size_t highIdx = readBuffer.find("\"high_price\":", offset);
-        size_t lowIdx = readBuffer.find("\"low_price\":", offset);
+        size_t highIdx  = readBuffer.find("\"high_price\":", offset);
+        size_t lowIdx   = readBuffer.find("\"low_price\":", offset);
 
-        if (openIdx == string::npos || tradeIdx == string::npos) {
+        if (openIdx == string::npos || tradeIdx == string::npos) break;
+
+        try {
+            double op = stod(readBuffer.substr(openIdx + 16, readBuffer.find(",", openIdx) - (openIdx + 16)));
+            double tp = stod(readBuffer.substr(tradeIdx + 14, readBuffer.find(",", tradeIdx) - (tradeIdx + 14)));
+            double hp = stod(readBuffer.substr(highIdx + 13, readBuffer.find(",", highIdx) - (highIdx + 13)));
+            double lp = stod(readBuffer.substr(lowIdx + 12, readBuffer.find(",", lowIdx) - (lowIdx + 12)));
+
+            outHistory[index] = CandleData(marketCode, op, hp, lp, tp);
+            index++;
+        }
+        catch (...) {
             break;
         }
 
-        CandleData day;
-        day.market = marketCode;
-
-        day.openingPrice = stod(readBuffer.substr(openIdx + 16, readBuffer.find(",", openIdx) - (openIdx + 16)));
-        day.tradePrice = stod(readBuffer.substr(tradeIdx + 14, readBuffer.find(",", tradeIdx) - (tradeIdx + 14)));
-        day.highPrice = stod(readBuffer.substr(highIdx + 13, readBuffer.find(",", highIdx) - (highIdx + 13)));
-        day.lowPrice = stod(readBuffer.substr(lowIdx + 12, readBuffer.find(",", lowIdx) - (lowIdx + 12)));
-
-        candleHistory.push_back(day);
         offset = tradeIdx + 30;
     }
 
-    return candleHistory;
+    if (index > 0 && index < count) {
+        for (int i = index; i < count; ++i) {
+            outHistory[i] = outHistory[index - 1];
+        }
+    }
 }
